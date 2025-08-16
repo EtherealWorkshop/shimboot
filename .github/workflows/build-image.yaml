@@ -17,15 +17,8 @@ jobs:
           - dedede
 
     steps:
-    - name: github is annoying
-      run: |
-        git config --global url."https://${{ secrets.SUPERDUPERSECRET }}@github.com/".insteadOf https://github.com/
-
     - name: Checkout repo
       uses: actions/checkout@v4
-      with:
-        submodules: recursive
-        token: ${{ secrets.SUPERDUPERSECRET }}
 
     - name: run build
       run: |
