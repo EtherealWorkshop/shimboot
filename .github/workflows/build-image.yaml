@@ -1,46 +1,43 @@
-name: build-image
-run-name: Build the shimboot disk image for all boards
-on: [push]
+name: All
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag'
+        required: true
+        type: string
 
 jobs:
   build:
-    permissions:
-      contents: write
-
-    strategy: 
-      matrix:
-        board: [dedede]
-
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        board:
+          - dedede
+
     steps:
-      - name: Maximize build space
-        uses: easimon/maximize-build-space@master
-        with:
-          root-reserve-mb: 4096
-          swap-size-mb: 1024
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
+    - name: github is annoying
+      run: |
+        git config --global url."https://${{ secrets.SUPERDUPERSECRET }}@github.com/".insteadOf https://github.com/
 
-      - name: download repo
-        uses: actions/checkout@v4
-      
-      - name: run build
-        run: |
-          sudo apt-get update
-          sudo apt-get upgrade -y
-          sudo DEBUG=1 ./build_complete.sh ${{ matrix.board }} compress_img=1 quiet=1 distro=alpine release=edge
+    - name: Checkout repo
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        token: ${{ secrets.SUPERDUPERSECRET }}
 
-      - name: upload img
-        uses: actions/upload-artifact@v4
-        with:
-          name: shimboot_${{ matrix.board }}
-          path: data/shimboot_${{ matrix.board }}.bin
-          compression-level: 7
-  
-      - name: create release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          draft: true
-          files: data/shimboot_${{ matrix.board }}.zip
+    - name: run build
+      run: |
+        sudo apt-get update
+        sudo apt-get upgrade -y
+        sudo DEBUG=1 ./build_complete.sh ${{ matrix.board }} compress_img=1 quiet=1 distro=alpine release=edge
+
+    - name: Upload built shim
+      uses: softprops/action-gh-release@v2
+      with:
+        name: Shimboot ${{ inputs.tag }}
+        tag_name: ${{ inputs.tag }}
+        files: ./data/shimboot_${{ matrix.board }}.bin
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
